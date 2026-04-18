@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <style>
+body {
+    font-family: Arial;
+    max-width: 600px;
+    margin: 40px auto;
+    background: #f5f5f5;
+}
+
+h2 {
+    text-align: center;
+}
+
+input {
+    padding: 10px;
+    width: 70%;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+button {
+    padding: 10px 15px;
+    margin: 5px;
+    border: none;
+    background: #4CAF50;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #45a049;
+}
+
+li {
+    background: white;
+    padding: 10px;
+    margin: 5px 0;
+    display: flex;
+    justify-content: space-between;
+    border-radius: 5px;
+}
+</style>
+</style>
+</head>
+<body>
+
+<h2>Dashboard</h2>
+
+<input type="text" id="note" placeholder="Enter note">
+<button onclick="addNote()">Add Note</button>
+
+<br><br>
+
+<button onclick="getNotes()">Get Notes</button>
+
+<ul id="notesList"></ul>
+
+<br>
+
+<button onclick="summarize()">Summarize First Note</button>
+
+<p id="summary"></p>
+
+<script>
+
+const token = localStorage.getItem("token");
+
+// ADD NOTE
+async function addNote() {
+    const content = document.getElementById("note").value;
+
+    await fetch("http://127.0.0.1:5000/add-note", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": token
+        },
+        body: JSON.stringify({ content })
+    });
+
+    alert("Note added");
+}
+
+// GET NOTES
+async function getNotes() {
+    const res = await fetch("http://127.0.0.1:5000/get-notes", {
+        headers: {
+            "Authorization": token
+        }
+    });
+
+    const data = await res.json();
+
+    const list = document.getElementById("notesList");
+    list.innerHTML = "";
+
+    data.forEach(note => {
+    const li = document.createElement("li");
+
+    const text = document.createElement("span");
+    text.innerText = note.content;
+
+    const btn = document.createElement("button");
+    btn.innerText = "Delete";
+    btn.onclick = () => deleteNote(note.id);
+
+    li.appendChild(text);
+    li.appendChild(btn);
+
+    list.appendChild(li);
+});
+}
+
+// SUMMARIZE
+async function summarize() {
+    const res = await fetch("http://127.0.0.1:5000/get-notes", {
+        headers: {
+            "Authorization": token
+        }
+    });
+
+    const notes = await res.json();
+
+    if (notes.length === 0) {
+        alert("No notes");
+        return;
+    }
+
+    const firstNote = notes[0].content;
+
+    const response = await fetch("http://127.0.0.1:5000/summarize", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": token
+        },
+        body: JSON.stringify({ content: firstNote })
+    });
+
+    const data = await response.json();
+
+    document.getElementById("summary").innerText = data.summary;
+}
+
+// DELETE NOTE
+async function deleteNote(id) {
+    await fetch(`http://127.0.0.1:5000/delete-note/${id}`, {
+        method: "DELETE",
+        headers: {
+            "Authorization": token
+        }
+    });
+
+    getNotes(); // Refresh the notes list
+}
+
+
+</script>
+
+</body>
+</html>
